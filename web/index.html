@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ping Pong</title>
+</head>
+<body>
+  <h1>Ping Pong Game</h1>
+
+  <input id="username" placeholder="Username" />
+  <input id="password" placeholder="Password" type="password" />
+  <button onclick="register()">Register</button>
+  <button onclick="login()">Login</button>
+
+  <pre id="output"></pre>
+
+  <script>
+    const socket = new WebSocket("ws://localhost:8081/ws");
+
+    socket.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      document.getElementById("output").textContent += JSON.stringify(msg) + "\n";
+    };
+
+    function register() {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      socket.send(JSON.stringify({ type: "register", username, password }));
+    }
+
+    function login() {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      socket.send(JSON.stringify({ type: "login", username, password }));
+    }
+  </script>
+</body>
+</html>
