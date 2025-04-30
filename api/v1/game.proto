@@ -1,0 +1,62 @@
+syntax = "proto3";
+package pingpong.v1;
+
+option go_package = "api/v1;gamev1";
+
+service GameService {
+  rpc Register(RegisterRequest) returns (RegisterResponse) {}
+  rpc Login(LoginRequest) returns (LoginResponse) {}
+  rpc StartPVEGame(StartPVEGameRequest) returns (stream GameState) {}
+  rpc StartPVPGame(StartPVPGameRequest) returns (stream GameState) {}
+  rpc PlayerAction(PlayerActionRequest) returns (PlayerActionResponse) {}
+}
+
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message RegisterResponse {
+  string user_id = 1;
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string token = 1;
+}
+
+message StartPVEGameRequest {
+  string user_id = 1;
+}
+
+message StartPVPGameRequest {
+  string user_id = 1;
+}
+
+
+message GameState {
+  int32 ball_x = 1;
+  int32 ball_y = 2;
+  int32 player_score = 3;
+  int32 ai_score = 4;
+  int32 paddle_y = 5;
+  int32 ai_paddle_y = 6;
+}
+
+message PlayerActionRequest {
+  string game_id = 1;
+  enum Action {
+    UP = 0;
+    DOWN = 1;
+    NONE = 2;
+  }
+  Action action = 2;
+}
+
+message PlayerActionResponse {
+  bool success = 1;
+}
