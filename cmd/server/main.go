@@ -85,8 +85,10 @@ func (s *server) StartPVEGame(req *gamev1.StartPVEGameRequest, stream gamev1.Gam
 	// Получаем пользователя из контекста
 	userID, ok := stream.Context().Value("user_id").(string)
 	if !ok {
+		log.Println("StartPVEGame: user_id not found in context")
 		return status.Error(codes.Unauthenticated, "invalid user")
 	}
+	log.Printf("StartPVEGame: starting game for user %s", userID)
 
 	// Создаем новую игру
 	game := s.gameManager.CreatePvEGame(userID)
@@ -138,7 +140,8 @@ func main() {
 	}
 
 	s := grpc.NewServer(
-	// grpc.UnaryInterceptor(auth.UnaryInterceptor()),
+		grpc.UnaryInterceptor(auth.UnaryInterceptor()),
+		grpc.StreamInterceptor(auth.StreamInterceptor()),
 	)
 
 	gamev1.RegisterGameServiceServer(s, NewServer())

@@ -22,6 +22,10 @@ func AuthInterceptor(ctx context.Context) (context.Context, error) {
 	}
 
 	token := strings.TrimPrefix(authHeaders[0], "Bearer ")
+	if token == "" {
+		return nil, status.Error(codes.Unauthenticated, "invalid token format")
+	}
+
 	claims, err := ValidateToken(token)
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, "invalid token: %v", err)

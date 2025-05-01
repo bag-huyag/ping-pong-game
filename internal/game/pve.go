@@ -18,7 +18,7 @@ const (
 	PaddleHeight = 100
 	BallSize     = 20
 	BallSpeed    = 8
-	AIReaction   = 0.8 // Скорость реакции ИИ (0-1)
+	AIReaction   = 0.1 // Скорость реакции ИИ (0-1)
 	PaddleSpeed  = 10  // Константа скорости движения
 )
 
@@ -128,7 +128,8 @@ func (g *PvEGame) ToProto() *gamev1.GameState {
 		PlayerScore: g.PlayerScore,
 		AiScore:     g.AIScore,
 		PaddleY:     int32(g.PlayerPaddleY),
-		AiPaddleY:   int32(g.AIPaddleY), // Добавляем AI ракетку
+		AiPaddleY:   int32(g.AIPaddleY),
+		GameId:      g.ID,
 	}
 }
 

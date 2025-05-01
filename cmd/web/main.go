@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 var upgrader = websocket.Upgrader{
@@ -44,6 +45,10 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	defer grpcConn.Close()
 
 	client := gamev1.NewGameServiceClient(grpcConn)
+
+	var token string
+	// var userID string
+	var gameID string
 
 	for {
 		// Читаем входящее сообщение от клиента
@@ -87,9 +92,100 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				conn.WriteJSON(map[string]string{"type": "error", "message": err.Error()})
 				continue
 			}
+			token = resp.Token
 			conn.WriteJSON(map[string]string{"type": "login_ok", "token": resp.Token})
 
-		// TODO: добавим start_pve, move, pvp позже
+		case "start_pve":
+			if token == "" {
+				conn.WriteJSON(map[string]string{"type": "error", "message": "Not authenticated"})
+				continue
+			}
+
+			md := metadata.New(map[string]string{"authorization": "Bearer " + token})
+			ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+			stream, err := client.StartPVEGame(ctx, &gamev1.StartPVEGameRequest{})
+			if err != nil {
+				conn.WriteJSON(map[string]string{"type": "error", "message": err.Error()})
+				continue
+			}
+
+			// Сохраняем gameID из первого состояния
+			firstState, err := stream.Recv()
+			if err != nil {
+				log.Println("Start stream error:", err)
+				conn.WriteJSON(map[string]string{"type": "error", "message": err.Error()})
+				continue
+			}
+
+			gameID = firstState.GameId // <-- добавь поле GameId в GameState proto!
+
+			conn.WriteJSON(map[string]interface{}{
+				"type":         "game_state",
+				"ball_x":       firstState.BallX,
+				"ball_y":       firstState.BallY,
+				"player_score": firstState.PlayerScore,
+				"ai_score":     firstState.AiScore,
+				"paddle_y":     firstState.PaddleY,
+				"ai_paddle_y":  firstState.AiPaddleY,
+			})
+
+			// Запускаем горутину, чтобы слушать обновления от сервера
+			go func() {
+				for {
+					state, err := stream.Recv()
+					if err != nil {
+						log.Println("Stream error:", err)
+						conn.WriteJSON(map[string]string{"type": "error", "message": "Game ended"})
+						return
+					}
+
+					conn.WriteJSON(map[string]interface{}{
+						"type":         "game_state",
+						"ball_x":       state.BallX,
+						"ball_y":       state.BallY,
+						"player_score": state.PlayerScore,
+						"ai_score":     state.AiScore,
+						"paddle_y":     state.PaddleY,
+						"ai_paddle_y":  state.AiPaddleY,
+					})
+				}
+			}()
+
+		case "move":
+			if token == "" || gameID == "" {
+				conn.WriteJSON(map[string]string{"type": "error", "message": "Game not started"})
+				continue
+			}
+
+			actionStr, ok := req["action"].(string)
+			if !ok {
+				conn.WriteJSON(map[string]string{"type": "error", "message": "Invalid action"})
+				continue
+			}
+
+			var action gamev1.PlayerActionRequest_Action
+			switch actionStr {
+			case "UP":
+				action = gamev1.PlayerActionRequest_UP
+			case "DOWN":
+				action = gamev1.PlayerActionRequest_DOWN
+			default:
+				action = gamev1.PlayerActionRequest_NONE
+			}
+
+			ctx := metadata.NewOutgoingContext(context.Background(), metadata.New(map[string]string{
+				"authorization": "Bearer " + token,
+			}))
+
+			_, err := client.PlayerAction(ctx, &gamev1.PlayerActionRequest{
+				GameId: gameID,
+				Action: action,
+			})
+			if err != nil {
+				log.Println("Move error:", err)
+			}
+
 		default:
 			conn.WriteJSON(map[string]string{"type": "error", "message": "unknown type"})
 		}

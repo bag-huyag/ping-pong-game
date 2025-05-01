@@ -1,9 +1,11 @@
 package auth
 
 import (
+	"context"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"google.golang.org/grpc"
 )
 
 const (
@@ -42,4 +44,34 @@ func ValidateToken(tokenString string) (*Claims, error) {
 	}
 
 	return nil, jwt.ErrSignatureInvalid
+}
+
+func StreamInterceptor() grpc.StreamServerInterceptor {
+	skipAuth := map[string]bool{
+		"/pingpong.v1.GameService/Register": true,
+		"/pingpong.v1.GameService/Login":    true,
+	}
+
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		if skipAuth[info.FullMethod] {
+			return handler(srv, ss)
+		}
+
+		newCtx, err := AuthInterceptor(ss.Context())
+		if err != nil {
+			return err
+		}
+
+		wrappedStream := &wrappedStream{ss, newCtx}
+		return handler(srv, wrappedStream)
+	}
+}
+
+type wrappedStream struct {
+	grpc.ServerStream
+	ctx context.Context
+}
+
+func (w *wrappedStream) Context() context.Context {
+	return w.ctx
 }

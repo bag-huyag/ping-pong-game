@@ -45,6 +45,7 @@ message GameState {
   int32 ai_score = 4;
   int32 paddle_y = 5;
   int32 ai_paddle_y = 6;
+  string game_id = 7;
 }
 
 message PlayerActionRequest {
@@ -60,3 +61,4 @@ message PlayerActionRequest {
 message PlayerActionResponse {
   bool success = 1;
 }
+

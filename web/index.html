@@ -11,28 +11,77 @@
   <input id="password" placeholder="Password" type="password" />
   <button onclick="register()">Register</button>
   <button onclick="login()">Login</button>
+  <button onclick="startPVE()">Start PvE</button>
 
   <pre id="output"></pre>
+
+  <canvas id="game" width="800" height="600" style="border:1px solid black;"></canvas>
 
   <script>
     const socket = new WebSocket("ws://localhost:8081/ws");
 
     socket.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-      document.getElementById("output").textContent += JSON.stringify(msg) + "\n";
+        const msg = JSON.parse(event.data);
+
+        if (msg.type === "game_state") {
+            drawGame(msg);
+        } else {
+            document.getElementById("output").textContent += JSON.stringify(msg) + "\n";
+        }
     };
 
     function register() {
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
-      socket.send(JSON.stringify({ type: "register", username, password }));
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+        socket.send(JSON.stringify({ type: "register", username, password }));
     }
 
     function login() {
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
-      socket.send(JSON.stringify({ type: "login", username, password }));
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+        socket.send(JSON.stringify({ type: "login", username, password }));
     }
+
+    function startPVE() {
+        socket.send(JSON.stringify({ type: "start_pve" }));
+    }
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowUp") {
+            socket.send(JSON.stringify({ type: "move", action: "UP" }));
+        } else if (e.key === "ArrowDown") {
+            socket.send(JSON.stringify({ type: "move", action: "DOWN" }));
+        }
+    });
+
+    document.addEventListener("keyup", (e) => {
+        if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+            socket.send(JSON.stringify({ type: "move", action: "NONE" }));
+        }
+    });
+
+
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    function drawGame(state) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Мяч
+        ctx.fillRect(state.ball_x, state.ball_y, 20, 20);
+
+        // Ракетка игрока
+        ctx.fillRect(0, state.paddle_y, 20, 100);
+
+        // Ракетка ИИ
+        ctx.fillRect(780, state.ai_paddle_y, 20, 100);
+
+        // Очки
+        ctx.font = "20px Arial";
+        ctx.fillText(`Player: ${state.player_score}`, 20, 20);
+        ctx.fillText(`AI: ${state.ai_score}`, 700, 20);
+    }
+
   </script>
 </body>
 </html>
