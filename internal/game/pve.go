@@ -12,14 +12,7 @@ import (
 )
 
 const (
-	FieldWidth   = 800
-	FieldHeight  = 600
-	PaddleWidth  = 20
-	PaddleHeight = 100
-	BallSize     = 20
-	BallSpeed    = 8
-	AIReaction   = 0.1 // Скорость реакции ИИ (0-1)
-	PaddleSpeed  = 10  // Константа скорости движения
+	AIReaction = 0.05 // Скорость реакции ИИ (0-1)
 )
 
 type PvEGame struct {

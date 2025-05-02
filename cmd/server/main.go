@@ -128,9 +128,74 @@ func (s *server) StartPVEGame(req *gamev1.StartPVEGameRequest, stream gamev1.Gam
 	}
 }
 
+var pvpQueue = make(chan gamev1.GameService_StartPVPGameServer, 1)
+
 func (s *server) StartPVPGame(req *gamev1.StartPVPGameRequest, stream gamev1.GameService_StartPVPGameServer) error {
-	// TODO: Реализовать PVP логику
-	return nil
+	userID, ok := stream.Context().Value("user_id").(string)
+	if !ok {
+		log.Println("StartPVPGame: user_id not found in context")
+		return status.Error(codes.Unauthenticated, "invalid user")
+	}
+	log.Printf("StartPVPGame: called by user %s", userID)
+
+	// Если в очереди уже есть игрок — запускаем игру
+	select {
+	case opponentStream := <-pvpQueue:
+		opponentCtx := opponentStream.Context()
+		opponentID, ok := opponentCtx.Value("user_id").(string)
+		if !ok {
+			log.Println("StartPVPGame: opponent user_id not found")
+			return status.Error(codes.Internal, "opponent invalid")
+		}
+
+		// Создаём игру
+		game := s.gameManager.CreatePvPGame(userID, opponentID, nil, nil)
+		log.Printf("StartPVPGame: PvP game started between %s and %s (ID: %s)", userID, opponentID, game.ID)
+
+		// Запускаем игровой цикл для обоих
+		go s.runPVPGameLoop(game, stream, opponentStream, userID, opponentID)
+		return nil
+
+	default:
+		// Если очереди нет — ставим игрока в очередь
+		log.Printf("StartPVPGame: user %s waiting for opponent", userID)
+		pvpQueue <- stream
+		<-stream.Context().Done() // игрок ушел
+		log.Printf("StartPVPGame: user %s disconnected while waiting", userID)
+		return nil
+	}
+}
+
+func (s *server) runPVPGameLoop(game *game.PvPGame, stream1, stream2 gamev1.GameService_StartPVPGameServer, player1ID, player2ID string) {
+	ticker := time.NewTicker(16 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-stream1.Context().Done():
+			s.gameManager.RemoveGame(game.ID)
+			return
+		case <-stream2.Context().Done():
+			s.gameManager.RemoveGame(game.ID)
+			return
+		case <-ticker.C:
+			game.Update()
+
+			state1 := game.ToProto(player1ID)
+			state2 := game.ToProto(player2ID)
+
+			if err := stream1.Send(state1); err != nil {
+				log.Println("Stream1 send error:", err)
+				s.gameManager.RemoveGame(game.ID)
+				return
+			}
+			if err := stream2.Send(state2); err != nil {
+				log.Println("Stream2 send error:", err)
+				s.gameManager.RemoveGame(game.ID)
+				return
+			}
+		}
+	}
 }
 
 func main() {

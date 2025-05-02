@@ -6,82 +6,137 @@
 </head>
 <body>
   <h1>Ping Pong Game</h1>
-
   <input id="username" placeholder="Username" />
   <input id="password" placeholder="Password" type="password" />
   <button onclick="register()">Register</button>
   <button onclick="login()">Login</button>
   <button onclick="startPVE()">Start PvE</button>
-
+  <button onclick="startPVP()">Start PvP</button>
   <pre id="output"></pre>
-
   <canvas id="game" width="800" height="600" style="border:1px solid black;"></canvas>
-
   <script>
     const socket = new WebSocket("ws://localhost:8081/ws");
+    let currentGameId = null;
+    let isPvP = false;
 
     socket.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-
-        if (msg.type === "game_state") {
-            drawGame(msg);
-        } else {
-            document.getElementById("output").textContent += JSON.stringify(msg) + "\n";
+      const msg = JSON.parse(event.data);
+      console.log("Received message:", msg);
+      
+      if (msg.type === "game_state") {
+        // Сохраняем ID игры для PvP режима
+        if (msg.game_id) {
+          currentGameId = msg.game_id;
         }
+        drawGame(msg);
+      } else if (msg.type === "game_start") {
+        // PvP игра началась
+        currentGameId = msg.game_id;
+        isPvP = true;
+        document.getElementById("output").textContent += JSON.stringify(msg) + "\n";
+      } else {
+        document.getElementById("output").textContent += JSON.stringify(msg) + "\n";
+      }
     };
 
     function register() {
-        const username = document.getElementById("username").value;
-        const password = document.getElementById("password").value;
-        socket.send(JSON.stringify({ type: "register", username, password }));
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      socket.send(JSON.stringify({ type: "register", username, password }));
     }
 
     function login() {
-        const username = document.getElementById("username").value;
-        const password = document.getElementById("password").value;
-        socket.send(JSON.stringify({ type: "login", username, password }));
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      socket.send(JSON.stringify({ type: "login", username, password }));
     }
 
     function startPVE() {
-        socket.send(JSON.stringify({ type: "start_pve" }));
+      isPvP = false;
+      socket.send(JSON.stringify({ type: "start_pve" }));
     }
 
+    function startPVP() {
+      socket.send(JSON.stringify({ type: "start_pvp" }));
+    }
+
+    // Обработчик клавиш
     document.addEventListener("keydown", (e) => {
+      if (isPvP) {
+        // PvP режим
         if (e.key === "ArrowUp") {
-            socket.send(JSON.stringify({ type: "move", action: "UP" }));
+            console.log("Sending UP command for PvP");
+            socket.send(JSON.stringify({ 
+                type: "move", 
+                game_id: currentGameId, 
+                direction: 1 
+          }));
         } else if (e.key === "ArrowDown") {
-            socket.send(JSON.stringify({ type: "move", action: "DOWN" }));
+            console.log("Sending DOWN command for PvP");
+            socket.send(JSON.stringify({ 
+                type: "move", 
+                game_id: currentGameId, 
+                direction: -1 
+          }));
         }
+      } else {
+        // PvE режим
+        if (e.key === "ArrowUp") {
+          socket.send(JSON.stringify({ type: "move", action: "UP" }));
+        } else if (e.key === "ArrowDown") {
+          socket.send(JSON.stringify({ type: "move", action: "DOWN" }));
+        }
+      }
     });
 
     document.addEventListener("keyup", (e) => {
-        if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-            socket.send(JSON.stringify({ type: "move", action: "NONE" }));
-        }
+      if (!isPvP && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+        socket.send(JSON.stringify({ type: "move", action: "NONE" }));
+      }
     });
-
 
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
 
     function drawGame(state) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Мяч
-        ctx.fillRect(state.ball_x, state.ball_y, 20, 20);
-
-        // Ракетка игрока
-        ctx.fillRect(0, state.paddle_y, 20, 100);
-
-        // Ракетка ИИ
-        ctx.fillRect(780, state.ai_paddle_y, 20, 100);
-
-        // Очки
-        ctx.font = "20px Arial";
-        ctx.fillText(`Player: ${state.player_score}`, 20, 20);
-        ctx.fillText(`AI: ${state.ai_score}`, 700, 20);
+        
+        // Рисуем поле
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Рисуем центральную линию
+        ctx.strokeStyle = "white";
+        ctx.setLineDash([5, 15]);
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, 0);
+        ctx.lineTo(canvas.width / 2, canvas.height);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Рисуем мяч
+        ctx.fillStyle = "white";
+        ctx.fillRect(state.ball_x, state.ball_y, 10, 10);
+        
+        // Рисуем ракетки
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, state.paddle_y, 10, 100);  // Левая ракетка (игрок)
+        ctx.fillRect(790, state.ai_paddle_y, 10, 100);  // Правая ракетка (противник)
+        
+        // Рисуем счет
+        ctx.font = "30px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(state.player_score.toString(), canvas.width / 4, 50);
+        ctx.fillText(state.ai_score.toString(), 3 * canvas.width / 4, 50);
+        
+        // Отладочная информация
+        ctx.font = "12px Arial";
+        ctx.textAlign = "left";
+        ctx.fillText(`Game ID: ${state.game_id}`, 10, canvas.height - 10);
+        ctx.fillText(`Ball: (${state.ball_x}, ${state.ball_y})`, 10, canvas.height - 25);
+        ctx.fillText(`My paddle: ${state.paddle_y}`, 10, canvas.height - 40);
+        ctx.fillText(`Opponent paddle: ${state.ai_paddle_y}`, 10, canvas.height - 55);
     }
-
   </script>
 </body>
 </html>
