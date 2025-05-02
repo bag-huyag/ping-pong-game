@@ -45,6 +45,9 @@ func NewPvEGame(playerID string) *PvEGame {
 }
 
 func (g *PvEGame) resetBall() {
+
+	rand.Seed(time.Now().UnixNano())
+
 	g.BallX = float64(FieldWidth / 2)
 	g.BallY = float64(FieldHeight / 2)
 
@@ -55,6 +58,10 @@ func (g *PvEGame) resetBall() {
 
 	g.BallSpeedX = math.Cos(angle) * BallSpeed
 	g.BallSpeedY = math.Sin(angle) * BallSpeed
+
+	if math.Abs(g.BallSpeedX) < 0.5 {
+		g.BallSpeedX = 0.5 * math.Copysign(1, g.BallSpeedX)
+	}
 }
 
 func (g *PvEGame) Update() {
@@ -77,22 +84,23 @@ func (g *PvEGame) Update() {
 		g.BallY = math.Max(0, math.Min(g.BallY, float64(FieldHeight-BallSize)))
 	}
 
-	// Столкновение с ракеткой игрока
+	// Столкновение с ракеткой AI (слева!)
 	if g.BallX <= PaddleWidth &&
-		g.BallY >= g.PlayerPaddleY &&
-		g.BallY <= g.PlayerPaddleY+PaddleHeight {
+		g.BallX+BallSize >= 0 &&
+		g.BallY+BallSize >= g.AIPaddleY &&
+		g.BallY <= g.AIPaddleY+PaddleHeight {
 		g.BallSpeedX = math.Abs(g.BallSpeedX)
-		// Добавляем угол в зависимости от места удара
-		hitPos := (g.BallY - g.PlayerPaddleY) / PaddleHeight
+		hitPos := (g.BallY - g.AIPaddleY) / PaddleHeight
 		g.BallSpeedY = (hitPos - 0.5) * 2 * BallSpeed
 	}
 
-	// Столкновение с ракеткой AI
-	if g.BallX >= FieldWidth-PaddleWidth-BallSize &&
-		g.BallY >= g.AIPaddleY &&
-		g.BallY <= g.AIPaddleY+PaddleHeight {
+	// Столкновение с ракеткой игрока (справа!)
+	if g.BallX+BallSize >= FieldWidth-PaddleWidth &&
+		g.BallX <= FieldWidth &&
+		g.BallY+BallSize >= g.PlayerPaddleY &&
+		g.BallY <= g.PlayerPaddleY+PaddleHeight {
 		g.BallSpeedX = -math.Abs(g.BallSpeedX)
-		hitPos := (g.BallY - g.AIPaddleY) / PaddleHeight
+		hitPos := (g.BallY - g.PlayerPaddleY) / PaddleHeight
 		g.BallSpeedY = (hitPos - 0.5) * 2 * BallSpeed
 	}
 
@@ -103,10 +111,10 @@ func (g *PvEGame) Update() {
 
 	// Проверка голов
 	if g.BallX < 0 {
-		g.AIScore++
+		g.PlayerScore++
 		g.resetBall()
 	} else if g.BallX > FieldWidth-BallSize {
-		g.PlayerScore++
+		g.AIScore++
 		g.resetBall()
 	}
 }

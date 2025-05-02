@@ -113,6 +113,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 						"ai_paddle_y":  state1.AiPaddleY,
 						"player_score": state1.PlayerScore,
 						"ai_score":     state1.AiScore,
+						"is_player1":   true, // Первый игрок
 					})
 				}
 
@@ -126,6 +127,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 						"ai_paddle_y":  state2.AiPaddleY,
 						"player_score": state2.PlayerScore,
 						"ai_score":     state2.AiScore,
+						"is_player1":   false, // Второй игрок
 					})
 				}
 			}

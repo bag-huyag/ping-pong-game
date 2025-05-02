@@ -169,8 +169,9 @@ func (g *PvPGame) MovePaddle(playerID string, direction int) {
 func (g *PvPGame) ToProto(playerID string) *gamev1.GameState {
 	var myPaddle, otherPaddle float64
 	var myScore, otherScore int32
+	var isPlayer1 bool = (playerID == g.Player1.ID)
 
-	if playerID == g.Player1.ID {
+	if isPlayer1 {
 		myPaddle = g.Player1.PaddleY
 		otherPaddle = g.Player2.PaddleY
 		myScore = int32(g.Score1)
@@ -190,6 +191,7 @@ func (g *PvPGame) ToProto(playerID string) *gamev1.GameState {
 		AiPaddleY:   int32(otherPaddle),
 		PlayerScore: myScore,
 		AiScore:     otherScore,
+		IsPlayer1:   isPlayer1, // Добавляем новое поле, указывающее, является ли игрок первым игроком
 	}
 }
 

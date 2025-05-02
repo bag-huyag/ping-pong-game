@@ -352,13 +352,14 @@ func (x *StartPVPGameRequest) GetUserId() string {
 
 type GameState struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	BallX         int32                  `protobuf:"varint,1,opt,name=ball_x,json=ballX,proto3" json:"ball_x,omitempty"`
-	BallY         int32                  `protobuf:"varint,2,opt,name=ball_y,json=ballY,proto3" json:"ball_y,omitempty"`
-	PlayerScore   int32                  `protobuf:"varint,3,opt,name=player_score,json=playerScore,proto3" json:"player_score,omitempty"`
-	AiScore       int32                  `protobuf:"varint,4,opt,name=ai_score,json=aiScore,proto3" json:"ai_score,omitempty"`
-	PaddleY       int32                  `protobuf:"varint,5,opt,name=paddle_y,json=paddleY,proto3" json:"paddle_y,omitempty"`
-	AiPaddleY     int32                  `protobuf:"varint,6,opt,name=ai_paddle_y,json=aiPaddleY,proto3" json:"ai_paddle_y,omitempty"`
-	GameId        string                 `protobuf:"bytes,7,opt,name=game_id,json=gameId,proto3" json:"game_id,omitempty"`
+	GameId        string                 `protobuf:"bytes,1,opt,name=game_id,json=gameId,proto3" json:"game_id,omitempty"`
+	BallX         int32                  `protobuf:"varint,2,opt,name=ball_x,json=ballX,proto3" json:"ball_x,omitempty"`
+	BallY         int32                  `protobuf:"varint,3,opt,name=ball_y,json=ballY,proto3" json:"ball_y,omitempty"`
+	PaddleY       int32                  `protobuf:"varint,4,opt,name=paddle_y,json=paddleY,proto3" json:"paddle_y,omitempty"`
+	AiPaddleY     int32                  `protobuf:"varint,5,opt,name=ai_paddle_y,json=aiPaddleY,proto3" json:"ai_paddle_y,omitempty"`
+	PlayerScore   int32                  `protobuf:"varint,6,opt,name=player_score,json=playerScore,proto3" json:"player_score,omitempty"`
+	AiScore       int32                  `protobuf:"varint,7,opt,name=ai_score,json=aiScore,proto3" json:"ai_score,omitempty"`
+	IsPlayer1     bool                   `protobuf:"varint,8,opt,name=is_player1,json=isPlayer1,proto3" json:"is_player1,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -393,6 +394,13 @@ func (*GameState) Descriptor() ([]byte, []int) {
 	return file_api_v1_game_proto_rawDescGZIP(), []int{6}
 }
 
+func (x *GameState) GetGameId() string {
+	if x != nil {
+		return x.GameId
+	}
+	return ""
+}
+
 func (x *GameState) GetBallX() int32 {
 	if x != nil {
 		return x.BallX
@@ -403,20 +411,6 @@ func (x *GameState) GetBallX() int32 {
 func (x *GameState) GetBallY() int32 {
 	if x != nil {
 		return x.BallY
-	}
-	return 0
-}
-
-func (x *GameState) GetPlayerScore() int32 {
-	if x != nil {
-		return x.PlayerScore
-	}
-	return 0
-}
-
-func (x *GameState) GetAiScore() int32 {
-	if x != nil {
-		return x.AiScore
 	}
 	return 0
 }
@@ -435,11 +429,25 @@ func (x *GameState) GetAiPaddleY() int32 {
 	return 0
 }
 
-func (x *GameState) GetGameId() string {
+func (x *GameState) GetPlayerScore() int32 {
 	if x != nil {
-		return x.GameId
+		return x.PlayerScore
 	}
-	return ""
+	return 0
+}
+
+func (x *GameState) GetAiScore() int32 {
+	if x != nil {
+		return x.AiScore
+	}
+	return 0
+}
+
+func (x *GameState) GetIsPlayer1() bool {
+	if x != nil {
+		return x.IsPlayer1
+	}
+	return false
 }
 
 type PlayerActionRequest struct {
@@ -556,15 +564,17 @@ const file_api_v1_game_proto_rawDesc = "" +
 	"\x13StartPVEGameRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\".\n" +
 	"\x13StartPVPGameRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"\xcb\x01\n" +
-	"\tGameState\x12\x15\n" +
-	"\x06ball_x\x18\x01 \x01(\x05R\x05ballX\x12\x15\n" +
-	"\x06ball_y\x18\x02 \x01(\x05R\x05ballY\x12!\n" +
-	"\fplayer_score\x18\x03 \x01(\x05R\vplayerScore\x12\x19\n" +
-	"\bai_score\x18\x04 \x01(\x05R\aaiScore\x12\x19\n" +
-	"\bpaddle_y\x18\x05 \x01(\x05R\apaddleY\x12\x1e\n" +
-	"\vai_paddle_y\x18\x06 \x01(\x05R\taiPaddleY\x12\x17\n" +
-	"\agame_id\x18\a \x01(\tR\x06gameId\"\x95\x01\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"\xea\x01\n" +
+	"\tGameState\x12\x17\n" +
+	"\agame_id\x18\x01 \x01(\tR\x06gameId\x12\x15\n" +
+	"\x06ball_x\x18\x02 \x01(\x05R\x05ballX\x12\x15\n" +
+	"\x06ball_y\x18\x03 \x01(\x05R\x05ballY\x12\x19\n" +
+	"\bpaddle_y\x18\x04 \x01(\x05R\apaddleY\x12\x1e\n" +
+	"\vai_paddle_y\x18\x05 \x01(\x05R\taiPaddleY\x12!\n" +
+	"\fplayer_score\x18\x06 \x01(\x05R\vplayerScore\x12\x19\n" +
+	"\bai_score\x18\a \x01(\x05R\aaiScore\x12\x1d\n" +
+	"\n" +
+	"is_player1\x18\b \x01(\bR\tisPlayer1\"\x95\x01\n" +
 	"\x13PlayerActionRequest\x12\x17\n" +
 	"\agame_id\x18\x01 \x01(\tR\x06gameId\x12?\n" +
 	"\x06action\x18\x02 \x01(\x0e2'.pingpong.v1.PlayerActionRequest.ActionR\x06action\"$\n" +

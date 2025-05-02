@@ -39,13 +39,14 @@ message StartPVPGameRequest {
 
 
 message GameState {
-  int32 ball_x = 1;
-  int32 ball_y = 2;
-  int32 player_score = 3;
-  int32 ai_score = 4;
-  int32 paddle_y = 5;
-  int32 ai_paddle_y = 6;
-  string game_id = 7;
+  string game_id = 1;
+  int32 ball_x = 2;
+  int32 ball_y = 3;
+  int32 paddle_y = 4;
+  int32 ai_paddle_y = 5;
+  int32 player_score = 6;
+  int32 ai_score = 7;
+  bool is_player1 = 8;
 }
 
 message PlayerActionRequest {
